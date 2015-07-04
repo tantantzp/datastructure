@@ -1,0 +1,33 @@
+/******************************************************************************************
+ * Data Structures in C++
+ * ISBN: 7-302-26883-3 & 7-302-29652-2
+ * Junhui DENG, deng@tsinghua.edu.cn
+ * Computer Science & Technology, Tsinghua University
+ * Copyright (c) 2011. All rights reserved.
+ ******************************************************************************************/
+
+#pragma once
+
+template <typename K, typename V> bool Skiplist<K, V>::put(K k, V v) { //跳转表词条插入算法
+   Entry<K, V>* e = new Entry<K, V>(k, v);
+   if (empty()) insertAsFirst(new Quadlist<Entry<K, V>*>); //插入首个Entry
+   ListNode<Quadlist<Entry<K, V>*>*>* qlist = first(); //从顶层列表的
+   QuadlistNode<Entry<K, V>*>* p = qlist->data->first();; //首节点开始查找
+   if (skipSearch(qlist, p, k)) //查找适当的插入位置
+      while (p->below) p = p->below; //若已有雷同词条，则需强制转到塔底
+   qlist = last(); //以下，紧邻于p的右侧，一座新塔将自底而上逐层生长
+   QuadlistNode<Entry<K, V>*>* b
+      = qlist->data->insertAfterAbove(e, p); //将e插入于p右侧（作为新塔的基座）
+   while (rand() % 2) { //经投掷硬币，若确定新塔需要再长高一层，则
+      while (qlist->data->valid(p) && !p->above) p = p->pred; //找出不低于此高度的最近前驱
+      if (!qlist->data->valid(p)) { //若该前驱是header
+         if (qlist == first()) //且当前已是最顶层，则意味着必须
+            insertAsFirst(new Quadlist<Entry<K, V>*>); //首先创建新的一层，然后
+         p = qlist->pred->data->first()->pred; //将p转至上一层Skiplist的header
+      } else //否则，可径自
+         p = p->above; //将p提升至该高度
+      qlist = qlist->pred; //上升一层，并在该层
+      b = qlist->data->insertAfterAbove(e, p, b); //将新节点插入p之后、b之上
+   }//课后：调整随机参数，观察总体层高的相应变化
+   return true; //Dictionary允许重复元素，故插入必成功——这与Hashtable等Map略有差异
+}
